@@ -1,0 +1,14 @@
+[package]
+name = "stacktraceflow_painter"
+version = "0.1.0"
+authors = ["Wojciech Baranowski <wbaranowski@protonmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+structopt = "0.2.10"
+cursive = "0.13"
+cursive_tree_view = "0.4"
+
