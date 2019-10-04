@@ -11,4 +11,4 @@ edition = "2018"
 structopt = "0.2.10"
 cursive = "0.12"
 cursive_tree_view = "0.4"
-
+atty = "0.2"
