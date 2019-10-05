@@ -36,17 +36,17 @@ fn main() {
                     name=stack.last().unwrap(),
                     indent=(stack.len()-1)*4
                 );
+                let new_row_opt = tree.insert_item(
+                    stack.last().unwrap().clone(),
+                    cursive_tree_view::Placement::LastChild,
+                    *tree_stack.last().unwrap(),
+                );
+                let new_row = match new_row_opt {
+                    Some(x) => x,
+                    None => !0,
+                };
+                tree_stack.push(new_row);
             }
-            let new_row_opt = tree.insert_item(
-                stack.last().unwrap().clone(),
-                cursive_tree_view::Placement::LastChild,
-                *tree_stack.last().unwrap(),
-            );
-            let new_row = match new_row_opt {
-                Some(x) => x,
-                None => !0,
-            };
-            tree_stack.push(new_row);
         } else if line.starts_with("-") {
             if stack.last() != Some(&line[1..].to_owned()) {
                 panic!(
@@ -57,7 +57,9 @@ fn main() {
                 );
             }
             stack.pop();
-            tree_stack.pop();
+            if stack.len() < args.depth as usize {
+                tree_stack.pop();
+            }
         } else {
             panic!("Line '{}' starts with neither '+' nor '-' in line {}", line, counter);
         }
