@@ -142,5 +142,31 @@ fn main() {
             }
         });
     });
+
+    // [R]emove all rows like this and their children
+    siv.add_global_callback('R', move |s| {
+        s.call_on_id("tree", |tree: &mut cursive_tree_view::TreeView<String>| {
+            if let Some(row) = tree.row() {
+                let mut row = row;
+                if let Some(s) = tree.borrow_item(row) {
+                    let s = s.clone();
+                    for i in 0..tree.len() {
+                        while let Some(x) = tree.borrow_item(i) {
+                            if x != &s {
+                                break;
+                            }
+                            if let Some(v) = tree.remove_item(i) {
+                                if i <= row {
+                                    use std::cmp::min;
+                                    row -= min(v.len(), row - i + 1);
+                                }
+                            }
+                        }
+                    }
+                    tree.set_selected_row(row);
+                }
+            }
+        });
+    });
     siv.run();
 }
