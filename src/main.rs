@@ -37,8 +37,8 @@ fn main() {
             if stack.len() <= args.depth as usize {
                 let transposed = stack.last().unwrap().split('@').rfold(
                     "".to_string(),
-                    |accum, next| { accum + " " + next },
-                );
+                    |accum, next| { accum + " " + next.trim() },
+                ).trim().to_string();
                 println!(
                     "{:indent$}{name}", "",
                     name=transposed,
