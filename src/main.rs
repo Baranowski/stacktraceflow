@@ -70,7 +70,28 @@ fn main() {
         counter += 1;
     }
 
+    use cursive::traits::Identifiable;
     let mut siv = cursive::Cursive::default();
-    siv.add_layer(tree);
+    siv.add_layer(tree.with_id("tree"));
+    siv.add_global_callback('e', |s| {
+        s.call_on_id("tree", move |tree: &mut cursive_tree_view::TreeView<String>| {
+            if let Some(row) = tree.row() {
+                let s = tree.borrow_item(row).unwrap();
+                let mut split = s.split(':');
+                let filename = split.next().unwrap();
+                let line = split.next().unwrap().parse::<usize>().unwrap();
+
+                use std::process::Command;
+                Command::new("gnome-terminal")
+                        .current_dir("../rust")
+                        .arg("--")
+                        .arg("vim")
+                        .arg(&filename)
+                        .arg(format!("+{}", line))
+                        .status().expect("Failed to run command");
+
+            }
+        });
+    });
     siv.run();
 }
