@@ -77,6 +77,8 @@ fn main() {
     use cursive::traits::Identifiable;
     let mut siv = cursive::Cursive::default();
     siv.add_layer(tree.with_id("tree"));
+
+    // [e]dit
     siv.add_global_callback('e', move |s| {
         s.call_on_id("tree", |tree: &mut cursive_tree_view::TreeView<String>| {
             if let Some(row) = tree.row() {
@@ -95,6 +97,48 @@ fn main() {
                         .status()
                         .expect("Failed to run command");
 
+            }
+        });
+    });
+
+    // [d]elete only this row without children
+    siv.add_global_callback('d', move |s| {
+        s.call_on_id("tree", |tree: &mut cursive_tree_view::TreeView<String>| {
+            if let Some(row) = tree.row() {
+                tree.extract_item(row);
+            }
+        });
+    });
+
+    // [D]elete all rows like this without their children
+    siv.add_global_callback('D', move |s| {
+        s.call_on_id("tree", |tree: &mut cursive_tree_view::TreeView<String>| {
+            if let Some(row) = tree.row() {
+                let mut row = row;
+                if let Some(s) = tree.borrow_item(row) {
+                    let s = s.clone();
+                    for i in 0..tree.len() {
+                        while let Some(x) = tree.borrow_item(i) {
+                            if x != &s {
+                                break;
+                            }
+                            if i <= row {
+                                row -= 1;
+                            }
+                            tree.extract_item(i);
+                        }
+                    }
+                    tree.set_selected_row(row);
+                }
+            }
+        });
+    });
+
+    // [r]emove
+    siv.add_global_callback('r', move |s| {
+        s.call_on_id("tree", |tree: &mut cursive_tree_view::TreeView<String>| {
+            if let Some(row) = tree.row() {
+                tree.remove_item(row);
             }
         });
     });
