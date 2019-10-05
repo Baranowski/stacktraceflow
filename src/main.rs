@@ -11,8 +11,12 @@ struct Cli {
     #[structopt(parse(from_os_str), short, long)]
     file: std::path::PathBuf,
 
+    /// Directory where the sources files are located
+    #[structopt(parse(from_os_str), short, long, default_value = "./")]
+    dir: std::path::PathBuf,
+
     /// How deep should the printed tree be
-    #[structopt(short, long, default_value = "3")]
+    #[structopt(short = "N", long, default_value = "10")]
     depth: u16,
 }
 
@@ -73,8 +77,8 @@ fn main() {
     use cursive::traits::Identifiable;
     let mut siv = cursive::Cursive::default();
     siv.add_layer(tree.with_id("tree"));
-    siv.add_global_callback('e', |s| {
-        s.call_on_id("tree", move |tree: &mut cursive_tree_view::TreeView<String>| {
+    siv.add_global_callback('e', move |s| {
+        s.call_on_id("tree", |tree: &mut cursive_tree_view::TreeView<String>| {
             if let Some(row) = tree.row() {
                 let s = tree.borrow_item(row).unwrap();
                 let mut split = s.split(':');
@@ -83,12 +87,13 @@ fn main() {
 
                 use std::process::Command;
                 Command::new("gnome-terminal")
-                        .current_dir("../rust")
+                        .current_dir(&args.dir)
                         .arg("--")
                         .arg("vim")
                         .arg(&filename)
                         .arg(format!("+{}", line))
-                        .status().expect("Failed to run command");
+                        .status()
+                        .expect("Failed to run command");
 
             }
         });
