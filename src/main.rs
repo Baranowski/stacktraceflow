@@ -31,13 +31,17 @@ fn main() {
         if line.starts_with("+") {
             stack.push(line[1..].to_owned());
             if stack.len() <= args.depth as usize {
+                let transposed = stack.last().unwrap().split('@').rfold(
+                    "".to_string(),
+                    |accum, next| { accum + " " + next },
+                );
                 println!(
                     "{:indent$}{name}", "",
-                    name=stack.last().unwrap(),
+                    name=transposed,
                     indent=(stack.len()-1)*4
                 );
                 let new_row_opt = tree.insert_item(
-                    stack.last().unwrap().clone(),
+                    transposed,
                     cursive_tree_view::Placement::LastChild,
                     *tree_stack.last().unwrap(),
                 );
