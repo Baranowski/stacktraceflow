@@ -116,7 +116,7 @@ fn main() {
                             if x != &s {
                                 break;
                             }
-                            if i <= row {
+                            if i <= row && row > 0 {
                                 row -= 1;
                             }
                             tree.extract_item(i);
@@ -152,7 +152,7 @@ fn main() {
                             if let Some(v) = tree.remove_item(i) {
                                 if i <= row {
                                     use std::cmp::min;
-                                    row -= min(v.len(), row - i + 1);
+                                    row -= min(min(v.len(), row - i + 1), row);
                                 }
                             }
                         }
