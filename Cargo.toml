@@ -1,5 +1,5 @@
 [package]
-name = "stacktraceflow_painter"
+name = "stacktraceflow"
 version = "0.1.0"
 authors = ["Wojciech Baranowski <wbaranowski@protonmail.com>"]
 edition = "2018"
