@@ -6,6 +6,9 @@ use cursive_tree_view;
 mod config;
 use config::Configuration;
 
+mod actions;
+use actions::Action;
+
 static mut CONFIGURATION: Option<Configuration> = None;
 
 fn main() {
@@ -104,16 +107,13 @@ fn main() {
         });
     });
 
-    // [D]elete all rows like this without their children
-    siv.add_global_callback('D', move |s| {
-        s.call_on_id("tree", |tree: &mut cursive_tree_view::TreeView<String>| {
-            if let Some(row) = tree.row() {
-                let mut row = row;
-                if let Some(s) = tree.borrow_item(row) {
-                    let s = s.clone();
+    fn perform_action(act: &Action, tree: &mut cursive_tree_view::TreeView<String>) {
+        match *act {
+            Action::Delete(ref pattern) => {
+                if let Some(mut row) = tree.row() {
                     for i in 0..tree.len() {
                         while let Some(x) = tree.borrow_item(i) {
-                            if x != &s {
+                            if x != pattern {
                                 break;
                             }
                             if i <= row && row > 0 {
@@ -124,29 +124,12 @@ fn main() {
                     }
                     tree.set_selected_row(row);
                 }
-            }
-        });
-    });
-
-    // [r]emove
-    siv.add_global_callback('r', move |s| {
-        s.call_on_id("tree", |tree: &mut cursive_tree_view::TreeView<String>| {
-            if let Some(row) = tree.row() {
-                tree.remove_item(row);
-            }
-        });
-    });
-
-    // [R]emove all rows like this and their children
-    siv.add_global_callback('R', move |s| {
-        s.call_on_id("tree", |tree: &mut cursive_tree_view::TreeView<String>| {
-            if let Some(row) = tree.row() {
-                let mut row = row;
-                if let Some(s) = tree.borrow_item(row) {
-                    let s = s.clone();
+            },
+            Action::Recursive(ref pattern) => {
+                if let Some(mut row) = tree.row() {
                     for i in 0..tree.len() {
                         while let Some(x) = tree.borrow_item(i) {
-                            if x != &s {
+                            if x != pattern {
                                 break;
                             }
                             if let Some(v) = tree.remove_item(i) {
@@ -159,6 +142,47 @@ fn main() {
                     }
                     tree.set_selected_row(row);
                 }
+            },
+        }
+    }
+
+    fn add_action(act: Action) {
+        unsafe {
+            CONFIGURATION.as_mut().unwrap().actions.push(act);
+        }
+    }
+
+    // [D]elete all rows like this without their children
+    siv.add_global_callback('D', move |s| {
+        s.call_on_id("tree", |tree: &mut cursive_tree_view::TreeView<String>| {
+            if let Some(row) = tree.row() {
+                if let Some(s) = tree.borrow_item(row) {
+                    let action = Action::Delete(s.clone());
+                    perform_action(&action, tree);
+                    add_action(action);
+                }
+            }
+        });
+    });
+
+    // [r]ecursively remove
+    siv.add_global_callback('r', move |s| {
+        s.call_on_id("tree", |tree: &mut cursive_tree_view::TreeView<String>| {
+            if let Some(row) = tree.row() {
+                tree.remove_item(row);
+            }
+        });
+    });
+
+    // [R]ecursively remove all rows like this and their children
+    siv.add_global_callback('R', move |s| {
+        s.call_on_id("tree", |tree: &mut cursive_tree_view::TreeView<String>| {
+            if let Some(row) = tree.row() {
+                if let Some(s) = tree.borrow_item(row) {
+                    let action = Action::Recursive(s.clone());
+                    perform_action(&action, tree);
+                    add_action(action);
+                }
             }
         });
     });
@@ -170,8 +194,13 @@ fn main() {
             Dialog::text("Would you like to save the current configuration?")
             .title("Quitting")
             .button("Yes", |s| {
+                let row = s.call_on_id("tree", |tree: &mut cursive_tree_view::TreeView<String>| {
+                    tree.row().unwrap_or(0)
+                }).unwrap_or(0);
                 unsafe {
-                    CONFIGURATION.as_ref().unwrap().save();
+                    CONFIGURATION.as_ref().expect(
+                        "The CONFIGURATION object died before saving. Please report an issue"
+                    ).save(row);
                 }
                 s.quit();
             })

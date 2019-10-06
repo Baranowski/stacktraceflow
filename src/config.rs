@@ -3,6 +3,8 @@ use serde::{Serialize, Deserialize};
 use std::path::PathBuf;
 use std::io::{Write, Read};
 
+use crate::actions::Action;
+
 #[derive(Clone)]
 pub struct Configuration {
     pub config: std::path::PathBuf,
@@ -48,9 +50,10 @@ impl Configuration {
         }
     }
 
-    pub fn save(&self) {
+    pub fn save(&self, selected: usize) {
         let path = &self.config;
-        let file_config: FileConfig = self.clone().into();
+        let mut file_config: FileConfig = self.clone().into();
+        file_config.selected = Some(selected);
         let str_config = toml::to_string(&file_config).expect("Could not serialize Configuration");
         let mut file = std::fs::OpenOptions::new()
             .write(true).truncate(true).create(true).open(path)
@@ -87,7 +90,7 @@ struct Cli {
     depth: Option<u16>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 struct FileConfig {
     file: Option<std::path::PathBuf>,
 
@@ -103,9 +106,6 @@ struct FileConfig {
     /// Modifications to the tree (removals) performed by the user
     actions: Option<Vec<Action>>,
 }
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct Action;
 
 impl FileConfig {
     fn new() -> FileConfig {
