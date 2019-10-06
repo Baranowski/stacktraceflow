@@ -1,101 +1,19 @@
-use structopt::StructOpt;
 use std::io::BufRead;
 
 use cursive;
 use cursive_tree_view;
 
-use serde::{Serialize, Deserialize};
+mod config;
+use config::Configuration;
 
-/// Analyze and pretty-print StackTraceFlow data from a Rust program
-#[derive(StructOpt)]
-struct Cli {
-    /// Configuration file. Optional if all the required parameters are supplied on the command
-    /// line
-    #[structopt(parse(from_os_str), short, long)]
-    config: Option<std::path::PathBuf>,
-
-    /// File with the StackTraceFlow data
-    #[structopt(parse(from_os_str), short, long)]
-    file: Option<std::path::PathBuf>,
-
-    /// Directory where the sources files are located
-    #[structopt(parse(from_os_str), short, long)]
-    dir: Option<std::path::PathBuf>,
-
-    /// How deep should the printed tree be
-    #[structopt(short = "N", long)]
-    depth: Option<u16>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct FileConfig {
-    file: Option<std::path::PathBuf>,
-
-    /// Directory where the sources files are located
-    dir: Option<std::path::PathBuf>,
-
-    /// How deep should the printed tree be
-    depth: Option<u16>,
-
-    /// Cursor position
-    selected: Option<usize>,
-
-    /// Modifications to the tree (removals) performed by the user
-    actions: Option<Vec<Action>>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct Action;
-
-impl FileConfig {
-    fn new() -> FileConfig {
-        FileConfig{file: None, dir: None, depth: None, selected: None, actions: None}
-    }
-}
-
-struct Configuration {
-    config: std::path::PathBuf,
-    file: std::path::PathBuf,
-    dir: std::path::PathBuf,
-    depth: u16,
-    selected: usize,
-    actions: Vec<Action>,
-}
-
-fn read_config(args: Cli) -> Configuration {
-    use std::path::PathBuf;
-    let mut file_config = FileConfig::new();
-    let config_path = match args.config {
-        Some(path) => {
-            use toml;
-            use std::io::Read;
-            let mut file = std::fs::File::open(&path).expect(
-                &format!("Could not open config file: {}", path.to_string_lossy()));
-            let mut contents = "".to_string();
-            file.read_to_string(&mut contents).expect(
-                &format!("Could not read config file: {}", path.to_string_lossy()));
-            file_config = toml::from_str(&contents).expect(
-                &format!("Could not parse config file: {}", path.to_string_lossy()));
-            path
-        },
-        None      => PathBuf::from("stacktraceflow.toml"),
-    };
-
-    use std::mem::replace;
-    Configuration{
-        config:     config_path,
-        file:       args.file.or_else(|| file_config.file.clone()).expect(
-            "You need to specify 'file' on the command line or in the config file"),
-        dir:        args.dir.or_else(|| file_config.dir.clone()).expect(
-            "You need to specify 'dir' on the command line or in the config file"),
-        depth:      args.depth.or_else(|| file_config.depth).unwrap_or(10),
-        selected:   file_config.selected.unwrap_or(1),
-        actions:    file_config.actions.unwrap_or(Vec::<Action>::new()),
-    }
-}
+static mut CONFIGURATION: Option<Configuration> = None;
 
 fn main() {
-    let configuration = read_config(Cli::from_args());
+    let configuration;
+    unsafe {
+        CONFIGURATION = Some(Configuration::load());
+        configuration = CONFIGURATION.as_ref().unwrap();
+    }
 
     let file = std::fs::File::open(&configuration.file).expect("Could not open file");
     let reader = std::io::BufReader::new(file);
@@ -154,6 +72,7 @@ fn main() {
     siv.add_layer(tree.with_id("tree"));
 
     // [e]dit
+    let dir = configuration.dir.clone();
     siv.add_global_callback('e', move |s| {
         s.call_on_id("tree", |tree: &mut cursive_tree_view::TreeView<String>| {
             if let Some(row) = tree.row() {
@@ -164,7 +83,7 @@ fn main() {
 
                 use std::process::Command;
                 Command::new("gnome-terminal")
-                        .current_dir(&configuration.dir)
+                        .current_dir(&dir)
                         .arg("--")
                         .arg("vim")
                         .arg(&filename)
@@ -251,6 +170,9 @@ fn main() {
             Dialog::text("Would you like to save the current configuration?")
             .title("Quitting")
             .button("Yes", |s| {
+                unsafe {
+                    CONFIGURATION.as_ref().unwrap().save();
+                }
                 s.quit();
             })
             .button("No", |s| { s.quit(); })
