@@ -13,4 +13,4 @@ cursive = "0.13"
 cursive_tree_view = "0.5"
 toml = "0.5"
 serde = { version = "1.0", features = ["derive"] }
-
+regex = "1"

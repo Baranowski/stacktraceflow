@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use std::path::PathBuf;
 use std::io::{Write, Read};
 
-use crate::actions::Action;
+use crate::data::Action;
 
 #[derive(Clone)]
 pub struct Configuration {
