@@ -12,6 +12,7 @@ pub struct Configuration {
     pub file: std::path::PathBuf,
     pub dir: std::path::PathBuf,
     pub depth: u16,
+    pub max_size: usize,
     pub selected: usize,
     pub actions: Vec<Action>,
     pub only: Vec<Regex>,
@@ -55,6 +56,7 @@ impl Configuration {
             depth:      args.depth.or_else(|| file_config.depth).unwrap_or(
                 if new_only_rx.is_empty() { 10 } else { 3 }
             ),
+            max_size:   args.max_size.or_else(|| file_config.max_size).unwrap_or(10_000),
             selected:   file_config.selected.unwrap_or(1),
             actions:    file_config.actions.unwrap_or(Vec::new()),
             only:       new_only_rx,
@@ -105,6 +107,10 @@ struct Cli {
     #[structopt(short = "N", long)]
     depth: Option<u16>,
 
+    /// Truncate the tree if it grows beyond this size
+    #[structopt(short = "L", long)]
+    max_size: Option<usize>,
+
     /// If any is specified, trim the tree to show only parents and children of the matching nodes
     #[structopt(long)]
     only: Vec<Regex>,
@@ -120,6 +126,9 @@ struct FileConfig {
     /// How deep should the printed tree be
     depth: Option<u16>,
 
+    /// Truncate the tree if it grows beyond this size
+    max_size: Option<usize>,
+
     /// Cursor position
     selected: Option<usize>,
 
@@ -133,7 +142,15 @@ struct FileConfig {
 
 impl FileConfig {
     fn new() -> FileConfig {
-        FileConfig{file: None, dir: None, depth: None, selected: None, actions: None, only: None}
+        FileConfig{
+            file: None,
+            dir: None,
+            depth: None,
+            max_size: None,
+            selected: None,
+            actions: None,
+            only: None
+        }
     }
 }
 
@@ -144,6 +161,7 @@ impl From<Configuration> for FileConfig {
             file: Some(rpl(&mut conf.file)),
             dir: Some(rpl(&mut conf.dir)),
             depth: Some(rpl(&mut conf.depth)),
+            max_size: Some(rpl(&mut conf.max_size)),
             selected: Some(rpl(&mut conf.selected)),
             actions: if conf.actions.is_empty() { None } else { Some(rpl(&mut conf.actions)) },
             only: if conf.only.is_empty() { None } else {

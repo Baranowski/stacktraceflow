@@ -62,11 +62,13 @@ fn add_line_with_full_tree(
     let mut view_row: Option<usize> = None;
     if stack.len() < configuration.depth as usize {
 
-        view_row = Some(tree.insert_item(
-            parser.parse(line),
-            cursive_tree_view::Placement::LastChild,
-            stack.last().map_or(0, |node| node.view_row.unwrap_or(0)),
-        ).unwrap());
+        if tree.len() < configuration.max_size {
+            view_row = Some(tree.insert_item(
+                parser.parse(line),
+                cursive_tree_view::Placement::LastChild,
+                stack.last().map_or(0, |node| node.view_row.unwrap_or(0)),
+            ).unwrap());
+        }
     }
     stack.push(Node{
         orig_line: line.to_string(),
@@ -80,11 +82,14 @@ fn matches_an_only(
     line: &str,
     onlys: &Vec<Regex>,
 ) -> bool {
-    if !parser.matches.contains_key(line) {
-        let value = onlys.iter().any(|re| re.is_match(&parser.parse(line).to_string()));
-        parser.matches.insert(line.to_string(), value);
+    match parser.matches.get(line) {
+        Some(b) => *b,
+        None => {
+            let value = onlys.iter().any(|re| re.is_match(&parser.parse(line).to_string()));
+            parser.matches.insert(line.to_string(), value);
+            value
+        }
     }
-    *parser.matches.get(line).unwrap()
 }
 
 fn add_line_with_only(
@@ -94,37 +99,36 @@ fn add_line_with_only(
     stack: &mut Vec<Node>,
     line: &str,
 ) {
-    if matches_an_only(parser, line, &configuration.only) {
+    let mut view_row = None;
+    let matched = matches_an_only(parser, line, &configuration.only);
+    if matched {
         // The current entry matches one of the 'only' patterns
-        let mut previous_row: usize = 0;
-        for i in stack.iter_mut() {
-            if let None = i.view_row {
-                i.view_row = tree.insert_item(
-                    parser.parse(&i.orig_line),
-                    cursive_tree_view::Placement::LastChild,
-                    previous_row,
-                );
+        if tree.len() < configuration.max_size {
+            let mut previous_row: usize = 0;
+            for i in stack.iter_mut() {
+                if let None = i.view_row {
+                    i.view_row = tree.insert_item(
+                        parser.parse(&i.orig_line),
+                        cursive_tree_view::Placement::LastChild,
+                        previous_row,
+                    );
+                }
                 previous_row = i.view_row.unwrap();
             }
+            view_row = Some(tree.insert_item(
+                parser.parse(line),
+                cursive_tree_view::Placement::LastChild,
+                previous_row,
+            ).unwrap());
         }
-        let view_row = tree.insert_item(
-            parser.parse(line),
-            cursive_tree_view::Placement::LastChild,
-            previous_row,
-        ).unwrap();
-        stack.push(Node{
-            orig_line: line.to_string(),
-            view_row: Some(view_row),
-            matched_an_only: true,
-        });
     } else {
         // TODO
-        stack.push(Node{
-            orig_line: line.to_string(),
-            view_row: None,
-            matched_an_only: false,
-        });
     }
+    stack.push(Node{
+        orig_line: line.to_string(),
+        view_row: view_row,
+        matched_an_only: matched,
+    });
 }
 
 fn del_line(_configuration: &Configuration, stack: &mut Vec<Node>, line: &str, counter: usize) {
@@ -163,5 +167,8 @@ pub fn read_stacktraceflow_file(configuration: &Configuration, tree: &mut TreeTy
             panic!("Line '{}' starts with neither '+' nor '-' in line {}", line, counter);
         }
         counter += 1;
+        if counter%100000 == 0 {
+            println!("{}", counter);
+        }
     }
 }
