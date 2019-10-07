@@ -1,12 +1,13 @@
-use std::io::BufRead;
-
 use cursive;
 
 mod config;
 use config::Configuration;
 
 mod data;
-use data::{Action, Record, TreeType};
+use data::{Action, TreeType};
+
+mod init;
+use init::read_stacktraceflow_file;
 
 static mut CONFIGURATION: Option<Configuration> = None;
 
@@ -52,53 +53,6 @@ fn perform_action(act: &Action, tree: &mut TreeType) {
 fn add_action(act: Action) {
     unsafe {
         CONFIGURATION.as_mut().unwrap().actions.push(act);
-    }
-}
-
-fn read_stacktraceflow_file(configuration: &Configuration, tree: &mut TreeType) {
-    let file = std::fs::File::open(&configuration.file).expect("Could not open file");
-    let reader = std::io::BufReader::new(file);
-    let mut stack: Vec<String> = Vec::new();
-    let mut counter: u32 = 1;
-    let mut tree_stack : Vec<usize> = Vec::new();
-    tree_stack.push(0);
-
-    for line in reader.lines() {
-        let line = line.unwrap();
-        if line.starts_with("+") {
-            let entry_id = line[1..].to_string();
-            let entry = Record::from_stacktraceflow_line(&entry_id).expect(
-                &format!("Failed to parse stacktraceflow line: {}", &entry_id));
-            stack.push(entry_id);
-            if stack.len() <= configuration.depth as usize {
-                let new_row_opt = tree.insert_item(
-                    entry,
-                    cursive_tree_view::Placement::LastChild,
-                    *tree_stack.last().unwrap(),
-                );
-                let new_row = match new_row_opt {
-                    Some(x) => x,
-                    None => !0,
-                };
-                tree_stack.push(new_row);
-            }
-        } else if line.starts_with("-") {
-            if stack.last() != Some(&line[1..].to_owned()) {
-                panic!(
-                    "StackTraceFlow line '{}' does not match top of the stack '{}' in line {}",
-                    line,
-                    stack.last().unwrap(),
-                    counter,
-                );
-            }
-            stack.pop();
-            if stack.len() < configuration.depth as usize {
-                tree_stack.pop();
-            }
-        } else {
-            panic!("Line '{}' starts with neither '+' nor '-' in line {}", line, counter);
-        }
-        counter += 1;
     }
 }
 

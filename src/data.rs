@@ -19,7 +19,7 @@ pub struct Record {
 }
 
 impl Record {
-    pub fn from_stacktraceflow_line(s: &String) -> Option<Self> {
+    pub fn from_stacktraceflow_line(s: &str) -> Option<Self> {
         use regex::Regex;
 
         let re = Regex::new(r"(?x)
