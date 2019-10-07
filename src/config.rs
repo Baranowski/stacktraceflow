@@ -52,7 +52,9 @@ impl Configuration {
                 "You need to specify 'file' on the command line or in the config file"),
             dir:        args.dir.or_else(|| file_config.dir.clone()).expect(
                 "You need to specify 'dir' on the command line or in the config file"),
-            depth:      args.depth.or_else(|| file_config.depth).unwrap_or(10),
+            depth:      args.depth.or_else(|| file_config.depth).unwrap_or(
+                if new_only_rx.is_empty() { 10 } else { 3 }
+            ),
             selected:   file_config.selected.unwrap_or(1),
             actions:    file_config.actions.unwrap_or(Vec::new()),
             only:       new_only_rx,
@@ -95,6 +97,11 @@ struct Cli {
     dir: Option<std::path::PathBuf>,
 
     /// How deep should the printed tree be
+    ///
+    /// This is the depth of the entire tree if there are no 'only' patterns supplied.
+    ///
+    /// This is the depth of the subtrees (children) of the matching nodes if the 'only' patterns
+    /// are supplied.
     #[structopt(short = "N", long)]
     depth: Option<u16>,
 
