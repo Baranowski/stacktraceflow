@@ -72,7 +72,10 @@ fn main() {
 
     use cursive::traits::Identifiable;
     let mut siv = cursive::Cursive::default();
-    siv.add_layer(tree.with_id("tree"));
+    let mut scroll_view = cursive::views::ScrollView::new(tree.with_id("tree"));
+    scroll_view.set_scroll_y(false);
+    scroll_view.set_scroll_x(true);
+    siv.add_layer(scroll_view);
 
     // [e]dit
     let dir = configuration.dir.clone();
