@@ -1,6 +1,7 @@
 //! Useful datatypes
 
 use serde::{Serialize, Deserialize};
+
 use cursive_tree_view;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -16,31 +17,6 @@ pub struct Record {
     pub function: String,
     pub file: String,
     pub line: usize,
-}
-
-impl Record {
-    pub fn from_stacktraceflow_line(s: &str) -> Option<Self> {
-        use regex::Regex;
-
-        let re = Regex::new(r"(?x)
-        ^
-        (?P<function>[^@]+)
-        \s@
-        (?P<file>[^:]+)
-        :
-        (?P<line>\d+)
-        :\d+:  # column
-        \s\d+: # last line
-        \d+    # last column
-        $
-        ").ok()?;
-        let cap = re.captures(&s)?;
-        Some(Record{
-            function: cap["function"].to_string(),
-            file: cap["file"].to_string(),
-            line: cap["line"].parse().ok()?,
-        })
-    }
 }
 
 impl std::fmt::Display for Record {
