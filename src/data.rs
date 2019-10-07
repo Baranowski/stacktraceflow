@@ -1,3 +1,5 @@
+//! Useful datatypes
+
 use serde::{Serialize, Deserialize};
 use cursive_tree_view;
 
@@ -31,8 +33,8 @@ impl Record {
         \s\d+: # last line
         \d+    # last column
         $
-        ").unwrap();
-        let cap = re.captures(&s).unwrap();
+        ").ok()?;
+        let cap = re.captures(&s)?;
         Some(Record{
             function: cap["function"].to_string(),
             file: cap["file"].to_string(),

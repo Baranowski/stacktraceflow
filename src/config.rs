@@ -2,6 +2,7 @@ use structopt::StructOpt;
 use serde::{Serialize, Deserialize};
 use std::path::PathBuf;
 use std::io::{Write, Read};
+use regex::Regex;
 
 use crate::data::Action;
 
@@ -13,6 +14,7 @@ pub struct Configuration {
     pub depth: u16,
     pub selected: usize,
     pub actions: Vec<Action>,
+    pub only: Vec<Regex>,
 }
 
 fn rpl<T: Default>(source: &mut T) -> T {
@@ -22,7 +24,7 @@ fn rpl<T: Default>(source: &mut T) -> T {
 
 impl Configuration {
     pub fn load() -> Configuration {
-        let args = Cli::from_args();
+        let mut args = Cli::from_args();
         let mut file_config = FileConfig::new();
         let config_path = match args.config {
             Some(path) => {
@@ -38,6 +40,12 @@ impl Configuration {
             None      => PathBuf::from("stacktraceflow.toml"),
         };
 
+        let new_only_str = rpl(&mut file_config.only).unwrap_or(Vec::<String>::new());
+        let mut new_only_rx: Vec<Regex> = new_only_str.iter().map(|s: &String| {
+            Regex::new(s).expect(&format!("Cannot parse regex '{}", &s))
+        }).collect();
+        new_only_rx.append(&mut args.only);
+
         Configuration{
             config:     config_path,
             file:       args.file.or_else(|| file_config.file.clone()).expect(
@@ -46,7 +54,8 @@ impl Configuration {
                 "You need to specify 'dir' on the command line or in the config file"),
             depth:      args.depth.or_else(|| file_config.depth).unwrap_or(10),
             selected:   file_config.selected.unwrap_or(1),
-            actions:    file_config.actions.unwrap_or(Vec::<Action>::new()),
+            actions:    file_config.actions.unwrap_or(Vec::new()),
+            only:       new_only_rx,
         }
     }
 
@@ -88,6 +97,10 @@ struct Cli {
     /// How deep should the printed tree be
     #[structopt(short = "N", long)]
     depth: Option<u16>,
+
+    /// If any is specified, trim the tree to show only parents and children of the matching nodes
+    #[structopt(long)]
+    only: Vec<Regex>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -105,11 +118,15 @@ struct FileConfig {
 
     /// Modifications to the tree (removals) performed by the user
     actions: Option<Vec<Action>>,
+
+    /// If any is specified, trim the tree to show only parents and children of the nodes matching
+    /// the regexes
+    only: Option<Vec<String>>,
 }
 
 impl FileConfig {
     fn new() -> FileConfig {
-        FileConfig{file: None, dir: None, depth: None, selected: None, actions: None}
+        FileConfig{file: None, dir: None, depth: None, selected: None, actions: None, only: None}
     }
 }
 
@@ -121,7 +138,11 @@ impl From<Configuration> for FileConfig {
             dir: Some(rpl(&mut conf.dir)),
             depth: Some(rpl(&mut conf.depth)),
             selected: Some(rpl(&mut conf.selected)),
-            actions: Some(rpl(&mut conf.actions)),
+            actions: if conf.actions.is_empty() { None } else { Some(rpl(&mut conf.actions)) },
+            only: if conf.only.is_empty() { None } else {
+                // Take conf's only (type: Vec<Regex>), map it into Vec<String>, and wrap in Some
+                Some(rpl(&mut conf.only).iter().map(|r| r.to_string()).collect())
+            }
         }
     }
 }

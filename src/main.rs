@@ -55,18 +55,11 @@ fn add_action(act: Action) {
     }
 }
 
-fn main() {
-    let configuration;
-    unsafe {
-        CONFIGURATION = Some(Configuration::load());
-        configuration = CONFIGURATION.as_ref().unwrap();
-    }
-
+fn read_stacktraceflow_file(configuration: &Configuration, tree: &mut TreeType) {
     let file = std::fs::File::open(&configuration.file).expect("Could not open file");
     let reader = std::io::BufReader::new(file);
     let mut stack: Vec<String> = Vec::new();
     let mut counter: u32 = 1;
-    let mut tree = TreeType::new();
     let mut tree_stack : Vec<usize> = Vec::new();
     tree_stack.push(0);
 
@@ -107,6 +100,17 @@ fn main() {
         }
         counter += 1;
     }
+}
+
+fn main() {
+    let configuration;
+    unsafe {
+        CONFIGURATION = Some(Configuration::load());
+        configuration = CONFIGURATION.as_ref().unwrap();
+    }
+
+    let mut tree = TreeType::new();
+    read_stacktraceflow_file(configuration, &mut tree);
 
     for act in &configuration.actions {
         perform_action(&act, &mut tree);
