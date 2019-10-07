@@ -132,12 +132,12 @@ struct FileConfig {
     /// Cursor position
     selected: Option<usize>,
 
-    /// Modifications to the tree (removals) performed by the user
-    actions: Option<Vec<Action>>,
-
     /// If any is specified, trim the tree to show only parents and children of the nodes matching
     /// the regexes
     only: Option<Vec<String>>,
+
+    /// Modifications to the tree (removals) performed by the user
+    actions: Option<Vec<Action>>,
 }
 
 impl FileConfig {
