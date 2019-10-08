@@ -75,7 +75,7 @@ fn main() {
     use cursive::traits::Identifiable;
     let mut siv = cursive::Cursive::default();
     type ScrollType = ScrollView<IdView<TreeType>>;
-    let mut scroll_view = ScrollType::new(tree.with_id("tree"))
+    let scroll_view = ScrollType::new(tree.with_id("tree"))
         .scroll_y(false)
         .scroll_x(true);
 

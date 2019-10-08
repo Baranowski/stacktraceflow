@@ -92,6 +92,25 @@ fn matches_an_only(
     }
 }
 
+/// We decided to add a node to a tree. Make sure that all its ancestors have been added first
+fn add_current_path(
+    parser: &mut StackTraceFlowParser,
+    stack: &mut Vec<Node>,
+    tree: &mut TreeType,
+) {
+    let mut previous_row: usize = 0;
+    for i in stack.iter_mut() {
+        if let None = i.view_row {
+            i.view_row = tree.insert_item(
+                parser.parse(&i.orig_line),
+                cursive_tree_view::Placement::LastChild,
+                previous_row,
+            );
+        }
+        previous_row = i.view_row.unwrap();
+    }
+}
+
 fn add_line_with_only(
     parser: &mut StackTraceFlowParser,
     configuration: &Configuration,
@@ -99,30 +118,42 @@ fn add_line_with_only(
     stack: &mut Vec<Node>,
     line: &str,
 ) {
-    let mut view_row = None;
     let matched = matches_an_only(parser, line, &configuration.only);
+    if tree.len() >= configuration.max_size {
+        stack.push(Node{
+            orig_line: line.to_string(),
+            view_row: None,
+            matched_an_only: matched,
+        });
+        return;
+    }
+
+    let mut view_row = None;
     if matched {
         // The current entry matches one of the 'only' patterns
-        if tree.len() < configuration.max_size {
-            let mut previous_row: usize = 0;
-            for i in stack.iter_mut() {
-                if let None = i.view_row {
-                    i.view_row = tree.insert_item(
-                        parser.parse(&i.orig_line),
-                        cursive_tree_view::Placement::LastChild,
-                        previous_row,
-                    );
-                }
-                previous_row = i.view_row.unwrap();
+        add_current_path(parser, stack, tree);
+        view_row = Some(tree.insert_item(
+            parser.parse(line),
+            cursive_tree_view::Placement::LastChild,
+            stack.last().as_ref().unwrap().view_row.unwrap(),
+        ).unwrap());
+    } else {
+        let recent_ancestors = stack.iter().rev().take(configuration.depth as usize);
+        let mut recent_ancestor_matched = false;
+        for ref item in recent_ancestors {
+            if item.matched_an_only {
+                recent_ancestor_matched = true;
+                break;
             }
+        }
+        if recent_ancestor_matched {
+            add_current_path(parser, stack, tree);
             view_row = Some(tree.insert_item(
                 parser.parse(line),
                 cursive_tree_view::Placement::LastChild,
-                previous_row,
+                stack.last().as_ref().unwrap().view_row.unwrap(),
             ).unwrap());
         }
-    } else {
-        // TODO
     }
     stack.push(Node{
         orig_line: line.to_string(),
