@@ -168,6 +168,31 @@ fn main() {
         });
     });
 
+    // Go to [p]arent
+    siv.add_global_callback('p', move |s| {
+        s.call_on_id("tree", |tree: &mut TreeType| {
+            if let Some(row) = tree.row() {
+                if let Some(p) = tree.item_parent(row) {
+                    tree.set_selected_row(p);
+                }
+            }
+        });
+    });
+
+    // Go down
+    siv.add_global_callback('j', move |s| {
+        s.call_on_id("tree", |tree: &mut TreeType| {
+            tree.focus_down(1);
+        });
+    });
+
+    // Go up
+    siv.add_global_callback('k', move |s| {
+        s.call_on_id("tree", |tree: &mut TreeType| {
+            tree.focus_up(1);
+        });
+    });
+
     // [q]uit
     siv.add_global_callback('q', |s| {
         use cursive::views::Dialog;
