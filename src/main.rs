@@ -75,10 +75,11 @@ fn main() {
     use cursive::traits::Identifiable;
     let mut siv = cursive::Cursive::default();
     type ScrollType = ScrollView<IdView<TreeType>>;
-    let mut scroll_view = ScrollType::new(tree.with_id("tree"));
-    scroll_view.set_scroll_y(false);
-    scroll_view.set_scroll_x(true);
-    siv.add_layer(scroll_view.with_id("scroll"));
+    let mut scroll_view = ScrollType::new(tree.with_id("tree"))
+        .scroll_y(false)
+        .scroll_x(true);
+
+    siv.add_fullscreen_layer(scroll_view.with_id("scroll"));
 
     // Scroll on the x axis
     siv.call_on_id("tree", |tree: &mut TreeType| {
