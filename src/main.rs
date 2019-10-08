@@ -9,6 +9,8 @@ use data::{Action, TreeType};
 mod init;
 use init::read_stacktraceflow_file;
 
+use cursive::views::{ScrollView, IdView};
+
 static mut CONFIGURATION: Option<Configuration> = None;
 
 fn perform_action(act: &Action, tree: &mut TreeType) {
@@ -72,10 +74,33 @@ fn main() {
 
     use cursive::traits::Identifiable;
     let mut siv = cursive::Cursive::default();
-    let mut scroll_view = cursive::views::ScrollView::new(tree.with_id("tree"));
+    type ScrollType = ScrollView<IdView<TreeType>>;
+    let mut scroll_view = ScrollType::new(tree.with_id("tree"));
     scroll_view.set_scroll_y(false);
     scroll_view.set_scroll_x(true);
-    siv.add_layer(scroll_view);
+    siv.add_layer(scroll_view.with_id("scroll"));
+
+    // Scroll on the x axis
+    siv.call_on_id("tree", |tree: &mut TreeType| {
+        tree.set_on_select(|s, row| {
+            let x_position = s.call_on_id("tree", |tree: &mut TreeType| {
+                match (tree.first_col(row), tree.item_width(row)) {
+                    (Some(offset), Some(width)) => Some((offset, width)),
+                    _ => None
+                }
+            });
+            if let Some(Some((offset, width))) = x_position {
+                s.call_on_id("scroll", |s: &mut ScrollType| {
+                    let viewport = s.content_viewport();
+                    if viewport.left() > offset {
+                        s.set_offset((offset, viewport.top()));
+                    } else if viewport.right() < offset + width {
+                        s.set_offset((offset + width - viewport.width(), viewport.top()));
+                    }
+                });
+            }
+        });
+    });
 
     // [e]dit
     let dir = configuration.dir.clone();
