@@ -9,7 +9,7 @@ use data::{Action, TreeType};
 mod init;
 use init::read_stacktraceflow_file;
 
-use cursive::views::{ScrollView, IdView};
+use cursive::views::{ScrollView, IdView, Dialog};
 
 static mut CONFIGURATION: Option<Configuration> = None;
 
@@ -104,25 +104,37 @@ fn main() {
     });
 
     // [e]dit
-    let dir = configuration.dir.clone();
-    siv.add_global_callback('e', move |s| {
-        s.call_on_id("tree", |tree: &mut TreeType| {
-            if let Some(row) = tree.row() {
-                let record = tree.borrow_item(row).unwrap();
+    match configuration.source_code_info {
+        None => siv.add_global_callback('e', |s| {
+            s.add_layer(Dialog::text("Cannot open external editor without the ".to_owned() +
+                                     "'editor' and 'dir' options supplied")
+                        .title("Fail").button("Ok", |_| {}));
+        }),
+        Some(ref sci) => {
+            let sci = sci.clone();
+            siv.add_global_callback('e', move |s| {
+                s.call_on_id("tree", |tree: &mut TreeType| {
+                    if let Some(row) = tree.row() {
+                        let record = tree.borrow_item(row).unwrap();
+                        let line_str: String = record.line.to_string();
+                        let command = sci.editor.replace("%F", &record.file)
+                                                .replace("%L", line_str.as_str());
+                        let command_arr: Vec<&str> = command.split(" ").collect();
+                        let program = command_arr.get(0).expect("The editor command is empty");
+                        let args = &command_arr[1..];
 
-                use std::process::Command;
-                Command::new("gnome-terminal")
-                        .current_dir(&dir)
-                        .arg("--")
-                        .arg("vim")
-                        .arg(&record.file)
-                        .arg(format!("+{}", record.line))
-                        .status()
-                        .expect("Failed to run command");
+                        use std::process::Command;
+                        Command::new(program)
+                                .current_dir(&sci.dir)
+                                .args(args)
+                                .status()
+                                .expect("Failed to run command");
 
-            }
-        });
-    });
+                    }
+                });
+            });
+        },
+    }
 
     // [d]elete only this row without children
     siv.add_global_callback('d', move |s| {
@@ -195,7 +207,6 @@ fn main() {
 
     // [q]uit
     siv.add_global_callback('q', |s| {
-        use cursive::views::Dialog;
         s.add_layer(
             Dialog::text("Would you like to save the current configuration?")
             .title("Quitting")

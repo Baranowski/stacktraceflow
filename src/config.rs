@@ -10,12 +10,33 @@ use crate::data::Action;
 pub struct Configuration {
     pub config: std::path::PathBuf,
     pub file: std::path::PathBuf,
-    pub dir: std::path::PathBuf,
     pub depth: u16,
     pub max_size: usize,
     pub selected: usize,
     pub actions: Vec<Action>,
     pub only: Vec<Regex>,
+    pub source_code_info: Option<SourceCodeInfo>,
+}
+
+#[derive(Clone)]
+pub struct SourceCodeInfo {
+    /// Directory containing the source code
+    pub dir: std::path::PathBuf,
+    /// Command to open source code in external editor
+    pub editor: String,
+}
+
+impl SourceCodeInfo {
+    fn new_option(args: &Cli, file: &FileConfig) -> Option<SourceCodeInfo> {
+        let dir = args.dir.as_ref().or_else(|| file.dir.as_ref());
+        let editor = args.editor.as_ref().or_else(|| file.editor.as_ref());
+        match (dir, editor) {
+            (None, None) => return None,
+            (Some(d), Some(e)) => return Some(SourceCodeInfo{dir: d.clone(), editor: e.clone()}),
+            (Some(_), None) => panic!("editor option must be specified when dir is specified"),
+            (None, Some(_)) => panic!("dir option must be specified when editor is specified"),
+        }
+    }
 }
 
 fn rpl<T: Default>(source: &mut T) -> T {
@@ -28,7 +49,7 @@ impl Configuration {
         let mut args = Cli::from_args();
         let mut file_config = FileConfig::new();
         let config_path = match args.config {
-            Some(path) => {
+            Some(ref path) => {
                 let mut file = std::fs::File::open(&path).expect(
                     &format!("Could not open config file: {}", path.to_string_lossy()));
                 let mut contents = "".to_string();
@@ -36,7 +57,7 @@ impl Configuration {
                     &format!("Could not read config file: {}", path.to_string_lossy()));
                 file_config = toml::from_str(&contents).expect(
                     &format!("Could not parse config file: {}", path.to_string_lossy()));
-                path
+                path.clone()
             },
             None      => PathBuf::from("stacktraceflow.toml"),
         };
@@ -49,17 +70,16 @@ impl Configuration {
 
         Configuration{
             config:     config_path,
-            file:       args.file.or_else(|| file_config.file.clone()).expect(
-                "You need to specify 'file' on the command line or in the config file"),
-            dir:        args.dir.or_else(|| file_config.dir.clone()).expect(
-                "You need to specify 'dir' on the command line or in the config file"),
+            file:       args.file.as_ref().or_else(|| file_config.file.as_ref()).expect(
+                "You need to specify 'file' on the command line or in the config file").clone(),
             depth:      args.depth.or_else(|| file_config.depth).unwrap_or(
                 if new_only_rx.is_empty() { 10 } else { 3 }
             ),
             max_size:   args.max_size.or_else(|| file_config.max_size).unwrap_or(10_000),
             selected:   file_config.selected.unwrap_or(1),
-            actions:    file_config.actions.unwrap_or(Vec::new()),
+            actions:    rpl(&mut file_config.actions).unwrap_or(Vec::new()),
             only:       new_only_rx,
+            source_code_info: SourceCodeInfo::new_option(&args, &file_config),
         }
     }
 
@@ -95,8 +115,18 @@ struct Cli {
     file: Option<std::path::PathBuf>,
 
     /// Directory where the sources files are located
+    ///
+    /// Must be provided iff editor is also provided.
     #[structopt(parse(from_os_str), short, long)]
     dir: Option<std::path::PathBuf>,
+
+    /// Command to open source code file in external editor.
+    ///
+    /// %F stands for filename, %L stands for line number
+    ///
+    /// Must be provided iff dir is also provided.
+    #[structopt(short, long)]
+    editor: Option<String>,
 
     /// How deep should the printed tree be
     ///
@@ -111,6 +141,8 @@ struct Cli {
     #[structopt(short = "L", long)]
     max_size: Option<usize>,
 
+    /// Patterns matching the items of interest
+    ///
     /// If any is specified, trim the tree to show only parents and children of the matching nodes
     #[structopt(long)]
     only: Vec<Regex>,
@@ -122,6 +154,11 @@ struct FileConfig {
 
     /// Directory where the sources files are located
     dir: Option<std::path::PathBuf>,
+
+    /// Command to open source code file in external editor.
+    ///
+    /// %F stands for filename, %L stands for line number
+    editor: Option<String>,
 
     /// How deep should the printed tree be
     depth: Option<u16>,
@@ -145,6 +182,7 @@ impl FileConfig {
         FileConfig{
             file: None,
             dir: None,
+            editor: None,
             depth: None,
             max_size: None,
             selected: None,
@@ -157,9 +195,11 @@ impl FileConfig {
 impl From<Configuration> for FileConfig {
     fn from(conf: Configuration) -> Self {
         let mut conf = conf;
+        let mut sci = rpl(&mut conf.source_code_info);
         FileConfig {
             file: Some(rpl(&mut conf.file)),
-            dir: Some(rpl(&mut conf.dir)),
+            dir: sci.as_mut().map(|sci: &mut SourceCodeInfo| rpl(&mut sci.dir)),
+            editor: sci.as_mut().map(|sci: &mut SourceCodeInfo| rpl(&mut sci.editor)),
             depth: Some(rpl(&mut conf.depth)),
             max_size: Some(rpl(&mut conf.max_size)),
             selected: Some(rpl(&mut conf.selected)),
