@@ -9,7 +9,7 @@ use data::{Action, TreeType};
 mod init;
 use init::read_stacktraceflow_file;
 
-use cursive::views::{ScrollView, IdView, Dialog};
+use cursive::views::{ScrollView, IdView, Dialog, TextView};
 
 static mut CONFIGURATION: Option<Configuration> = None;
 
@@ -222,6 +222,38 @@ fn main() {
                 s.quit();
             })
             .button("No", |s| { s.quit(); })
+        );
+    });
+
+    // ? - help
+    siv.add_global_callback('?', |s| {
+        s.add_layer(
+            Dialog::around(TextView::new(r"Keybindings:
+
+Navigation:
+    <Enter> - collapse/expand element
+     ↓ or j - move one item down
+     ↑ or k - move one item up
+     PgDown - move 10 items down
+       PgUp - move 10 items up
+          p - move to parent
+    ← and → - scroll left/right (when the tree does not fit onto the screen)
+
+Editing:
+          r - remove the current element recursively together with its children
+          d - delete the current element but keep its children
+          R - remove recursively all elements identical to the current one;
+              save this operation to config when applicable
+          D - delete all elements identical to the current one but keep their children;
+              save this operation to config when applicable
+
+Miscellaneous:
+          ? - show this help dialog
+          e - open current item in an external editor
+          q - offer to save the configuration and quit
+            "))
+            .title("Help")
+            .button("Ok", |s| { s.pop_layer(); })
         );
     });
     siv.run();
