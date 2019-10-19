@@ -108,7 +108,7 @@ fn main() {
         None => siv.add_global_callback('e', |s| {
             s.add_layer(Dialog::text("Cannot open external editor without the ".to_owned() +
                                      "'editor' and 'dir' options supplied")
-                        .title("Fail").button("Ok", |_| {}));
+                        .title("Fail").button("Ok", |s| {s.pop_layer();}));
         }),
         Some(ref sci) => {
             let sci = sci.clone();
