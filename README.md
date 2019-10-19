@@ -1,23 +1,21 @@
-# What is this?
-
 A navigation tool for what I call "stack trace flow". For a process that has
-ran, it allows you to explore how the stack trace was changing - which
-functions were calling which and in what order.
+ran, it allows you to explore how the stack trace was changing
+- which functions were calling which and in what order.
 
 It allows you to open functions of interest in an external editor. It also
 supports hiding from the stack trace flow functions that are of little interest.
 
-# What for?
+# Motivation
 
 In my career I often had to quickly understand an unfamiliar complex codebase.
 Many times I wished I had a tool like this to help me get a high-level idea of
 where different pieces of the software fit into the picture.
 
-# What does it look like?
+# Demo
 
 [TODO: Demo]
 
-# How do I use it?
+# Usage
 
 First, clone the repo and build with `cargo` as usual. Make sure you have
 ncurses installed in your system.
@@ -56,7 +54,7 @@ $ target/release/stacktraceflow -f rustc_stacktraceflow/stacktraceflow.ThreadId\
 After that, you will be able to use the `'e'` key in the program which will open
 selected item in the editor.
 
-## How do I generate stack trace flow for different software?
+## Usage for other projects
 
 In this early PoC, stack trace flows can be generated only for Rust programs
 compiled with a modified version of `rustc`. Download the modified version of
@@ -93,7 +91,7 @@ $ target/release/my_binary some args ...
 $ $STACKTRACEFLOW_DIR/target/release/stacktraceflow -f stacktraceflow.ThreadId\(1\).txt -d ./ -e "gnome-terminal -- vim %F +%L"
 ```
 
-# What features does it have?
+# Features
 
 * With the `-d` and `-e` options supplied, open source code of any function in
   an external editor.
