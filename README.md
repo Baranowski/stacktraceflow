@@ -1,6 +1,6 @@
 This is a navigation tool for what I call "stack trace flow". For a process that
-has ran, it allows you to explore how the stack trace was changing
-- which functions were calling which and in what order.
+has ran, it allows you to explore how the stack trace was changing - which
+functions were calling which and in what order.
 
 It allows you to open functions of interest in an external editor. It also
 supports hiding from the view functions that are of little interest.
