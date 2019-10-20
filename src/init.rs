@@ -188,6 +188,7 @@ pub fn read_stacktraceflow_file(configuration: &Configuration, tree: &mut TreeTy
         add_line_with_only
     };
 
+    println!("Number of lines read:");
     for line in reader.lines() {
         let line = line.unwrap();
         if line.starts_with("+") {

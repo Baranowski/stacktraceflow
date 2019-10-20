@@ -1,9 +1,9 @@
-A navigation tool for what I call "stack trace flow". For a process that has
-ran, it allows you to explore how the stack trace was changing
+This is a navigation tool for what I call "stack trace flow". For a process that
+has ran, it allows you to explore how the stack trace was changing
 - which functions were calling which and in what order.
 
 It allows you to open functions of interest in an external editor. It also
-supports hiding from the stack trace flow functions that are of little interest.
+supports hiding from the view functions that are of little interest.
 
 # Motivation
 
@@ -13,12 +13,15 @@ where different pieces of the software fit into the picture.
 
 # Demo
 
-[TODO: Demo]
+<details>
+  <summary>Expand to view</summary>
+  <img src="demo.gif" alt="stacktraceflow demo">
+</details>
 
 # Usage
 
 First, clone the repo and build with `cargo` as usual. Make sure you have
-ncurses installed in your system.
+[ncurses installed in your system](https://github.com/gyscos/cursive/wiki/Install-ncurses).
 
 ```bash
 $ git clone https://github.com/Baranowski/stacktraceflow.git
@@ -45,7 +48,9 @@ Press `'?'` to see the built-in help, including keybindings.
 ## Editor integration
 
 If you wish to be able to view the source code associated with each entry, you
-need to supply the `-e` and `-d` options, for example:
+need to supply the `-e` and `-d` options. The latter points to a directory
+containing the source code of the program under analysis, in this case rustc.
+For example:
 
 ```bash
 $ target/release/stacktraceflow -f rustc_stacktraceflow/stacktraceflow.ThreadId\(2\).txt -e "gnome-terminal -- vim %F +%L" -d ../rustc
@@ -75,7 +80,8 @@ In order to be able to use this modified compiler for any of your projects,
 $ rustup link stacktraceflow build/x86_64-unknown-linux-gnu/stage1
 ```
 
-Finally, go to your project's directory and build it with this compiler:
+Finally, go to your project's directory and build it with this modified
+compiler:
 
 ```bash
 $ cd ../my_project
@@ -98,8 +104,8 @@ $ $STACKTRACEFLOW_DIR/target/release/stacktraceflow -f stacktraceflow.ThreadId\(
 * Remove uninteresting functions from the view either on their own (their
   children will assume their position in the tree) or with their entire
   subtrees.
-* All those edits can be saved to a configuration file and reapplied on
-  subsequent runs.
+* All those edits can be saved to a configuration file and automatically
+  reapplied on subsequent runs.
 * That's it. It's pretty basic.
 
 # Future work
