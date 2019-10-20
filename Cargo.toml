@@ -10,7 +10,8 @@ edition = "2018"
 
 structopt = "0.2.10"
 cursive = "0.13"
-cursive_tree_view = "0.5"
+# Need to use git until commit b772942 is released to crates.io
+cursive_tree_view = { git = "https://github.com/BonsaiDen/cursive_tree_view" }
 toml = "0.5"
 serde = { version = "1.0", features = ["derive"] }
 regex = "1"
